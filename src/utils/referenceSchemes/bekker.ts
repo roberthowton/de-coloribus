@@ -32,17 +32,14 @@ export const bekkerScheme: ReferenceScheme = {
 
   inlineMarker(parsed: ParsedRef, _ctx: MarkerCtx): string {
     const { page, column, line } = parsed;
-    if (line === "1" && column === "a") return `${page}a`;
-    if (line === "1") return "b";
+    if (line === "1") return `${page}${column}`;
     return line;
   },
 
-  blockMarker(parsed: ParsedRef, ctx: MarkerCtx): string {
+  blockMarker(parsed: ParsedRef, _ctx: MarkerCtx): string {
     const { page, column, line } = parsed;
-    // First line of the whole document: show "page + column" (e.g. "791a")
-    if (ctx.isFirstLine) return `${page}${column}`;
-    // First line of a new column: show just the column letter
-    if (line === "1") return column;
+    // First line of each column (incl. the very first): show full "page + column"
+    if (line === "1") return `${page}${column}`;
     return line;
   },
 

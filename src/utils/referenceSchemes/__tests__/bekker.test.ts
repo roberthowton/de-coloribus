@@ -81,10 +81,10 @@ describe("bekkerScheme.blockMarker", () => {
     expect(result).toBe("791a");
   });
 
-  it("shows column letter on first line of a new page column (non-first)", () => {
-    const parsed = { page: "791", column: "b", line: "1" };
-    const result = bekkerScheme.blockMarker(parsed, { ref: "791b1", isFirstLine: false });
-    expect(result).toBe("b");
+  it("shows full page+column on first line of a new column (non-first)", () => {
+    const parsed = { page: "793", column: "b", line: "1" };
+    const result = bekkerScheme.blockMarker(parsed, { ref: "793b1", isFirstLine: false });
+    expect(result).toBe("793b");
   });
 
   it("shows the line number otherwise", () => {

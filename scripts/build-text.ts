@@ -119,6 +119,15 @@ function injectLineBegins(xmlStr: string): string {
       // Remove physical-print break markers from each paragraph.
       p.querySelectorAll("pb, cb").forEach((el) => el.remove());
     }
+
+    // Post-process: if a <p> ends with a bare <lb> (no text after it), move
+    // that <lb> to the start of the next <p> so handle-line-begin can wrap it.
+    for (let i = 0; i < paragraphs.length - 1; i++) {
+      const lastChild = paragraphs[i].lastChild;
+      if (lastChild && (lastChild as Element).tagName === "lb") {
+        paragraphs[i + 1].insertBefore(lastChild, paragraphs[i + 1].firstChild);
+      }
+    }
   }
 
   return new window.XMLSerializer().serializeToString(doc);
