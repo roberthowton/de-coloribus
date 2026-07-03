@@ -54,7 +54,7 @@ function pageFromRef(ref: string): string {
 function renderEntry(entry: ApparatusEntry): string {
   const lemma = (entry.targets[0] as ApparatusTarget).lemma ?? "";
   const note = entry.note ?? "";
-  return `<li class="app-entry">
+  return `<li class="app-entry" data-entry-id="${entry.id}">
     <span class="app-ref">${entry.displayRef}</span>
     ${lemma ? `<span class="app-lemma-text">${lemma}]</span>` : ""}
     <span class="app-note">${note}</span>
@@ -171,8 +171,24 @@ export function createApparatusPanelElement(): typeof HTMLElement {
       this.render(visible);
     }
 
+    private highlightEntry(entryId: string, on: boolean) {
+      for (const span of Array.from(
+        document.querySelectorAll<HTMLElement>(".app-lemma")
+      )) {
+        const ids = span.dataset.entryIds?.split(",") ?? [];
+        if (ids.includes(entryId)) span.classList.toggle("highlighted", on);
+      }
+    }
+
     private render(entries: ApparatusEntry[]) {
       if (!this.data) return;
+
+      // Clear any active highlights before re-render wipes the hovered entry
+      for (const span of Array.from(
+        document.querySelectorAll<HTMLElement>(".app-lemma.highlighted")
+      )) {
+        span.classList.remove("highlighted");
+      }
 
       // Determine current page label from first visible ref
       const firstRef = Array.from(this.visibleRefs).sort()[0] ?? "";
@@ -198,11 +214,21 @@ export function createApparatusPanelElement(): typeof HTMLElement {
         <div class="app-body">${entriesHtml}</div>
       `;
 
-      // Re-attach toggle listener after re-render
+      // Toggle listener
       this.querySelector(".app-toggle")?.addEventListener("click", () => {
         this.collapsed = !this.collapsed;
         this.classList.toggle("collapsed", this.collapsed);
       });
+
+      // Hover listeners: highlight matching lemma spans in the text
+      for (const li of Array.from(
+        this.querySelectorAll<HTMLElement>(".app-entry")
+      )) {
+        const id = li.dataset.entryId;
+        if (!id) continue;
+        li.addEventListener("mouseenter", () => this.highlightEntry(id, true));
+        li.addEventListener("mouseleave", () => this.highlightEntry(id, false));
+      }
     }
   };
 }

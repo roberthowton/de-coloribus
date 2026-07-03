@@ -112,16 +112,11 @@ import TeiBaseStyle from "./tei-base-style.astro";
     text-align-last: auto;
   }
 
-  /* ── Apparatus lemma highlight ──────────────────────────────────────── */
-  .app-lemma {
+  /* ── Apparatus lemma highlight (shown only on apparatus entry hover) ── */
+  .app-lemma.highlighted {
     background-color: var(--color-lemma);
     border-bottom: 1px solid var(--color-lemma-border);
-    cursor: pointer;
     border-radius: 1px;
-  }
-
-  .app-lemma:hover {
-    background-color: rgba(139, 0, 0, 0.22);
   }
 
   /* ── Bekker page reference ──────────────────────────────────────────── */
