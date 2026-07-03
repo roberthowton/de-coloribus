@@ -1,0 +1,38 @@
+---
+// Adapted from openplato (openplatodotorg-rfh-fork/src/components/Tei/Tei.astro)
+import TeiStyle from "./tei-style.astro";
+import { type ProcessedTei } from "../../utils/processTei.ts";
+
+export interface Props {
+  teiData: ProcessedTei;
+  rootId?: string;
+  hideLineNumbers?: boolean;
+}
+
+const { teiData, rootId, hideLineNumbers = false } = Astro.props;
+
+// Expand self-closing elements (CETEIcean serialises some as <tei-x/>)
+const tei = teiData.serialized.replace(
+  /<([^\s\/]+)([^>]*?)\/>/gm,
+  "<$1$2></$1>",
+);
+---
+
+<script>
+  import { createTeiCustomElement } from "./TeiCustomElement";
+  const TeiContainer = createTeiCustomElement();
+  if (!customElements.get("tei-container")) {
+    customElements.define("tei-container", TeiContainer);
+  }
+</script>
+
+<tei-container
+  set:html={tei}
+  data-root-id={rootId}
+  data-language="gr"
+  data-elements={teiData.elements.toString()}
+  data-hide-line-numbers={hideLineNumbers.toString()}
+  style="display: none;"
+/>
+
+<TeiStyle />

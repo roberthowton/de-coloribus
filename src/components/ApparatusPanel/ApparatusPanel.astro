@@ -1,0 +1,129 @@
+---
+// Docked apparatus panel: registers the web component and injects its styles.
+// Reads apparatus data from the JSON script tag with id="apparatus" on the page.
+---
+
+<script>
+  import { createApparatusPanelElement } from "./ApparatusPanelElement";
+  if (!customElements.get("apparatus-panel")) {
+    customElements.define("apparatus-panel", createApparatusPanelElement());
+  }
+</script>
+
+<apparatus-panel></apparatus-panel>
+
+<style is:inline>
+  apparatus-panel {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--color-bg, #fffdf6);
+    border-top: 2px solid var(--color-accent, #8b0000);
+    font-family: var(--font-body, Georgia, serif);
+    font-size: 0.875rem;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    max-height: 40vh;
+    overflow-y: auto;
+    transition: max-height 0.2s ease;
+  }
+
+  apparatus-panel.collapsed {
+    max-height: 2.5rem;
+    overflow: hidden;
+  }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.4rem 1rem;
+    background: var(--color-bg, #fffdf6);
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  .app-page-label {
+    font-weight: 700;
+    font-style: italic;
+    color: var(--color-accent, #8b0000);
+    white-space: nowrap;
+    min-width: 8rem;
+  }
+
+  .app-sigla {
+    color: var(--color-muted, #6b6b6b);
+    font-size: 0.8rem;
+    flex: 1;
+  }
+
+  .siglum {
+    white-space: nowrap;
+  }
+
+  .app-toggle {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.2rem 0.5rem;
+    font-size: 1rem;
+    color: var(--color-muted, #6b6b6b);
+    line-height: 1;
+  }
+
+  apparatus-panel.collapsed .app-toggle-icon {
+    display: inline-block;
+    transform: rotate(-90deg);
+  }
+
+  .app-body {
+    padding: 0.5rem 1rem 1rem;
+  }
+
+  .app-entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .app-entry {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+    line-height: 1.5;
+  }
+
+  .app-ref {
+    font-weight: 700;
+    font-style: italic;
+    min-width: 2.5rem;
+    color: var(--color-muted, #6b6b6b);
+    flex-shrink: 0;
+  }
+
+  .app-lemma-text {
+    font-family: var(--font-greek, Porson, serif);
+    font-size: 1rem;
+    margin-right: 0.25rem;
+    color: var(--color-text, #1a1a1a);
+  }
+
+  .app-note {
+    color: var(--color-text, #1a1a1a);
+  }
+
+  .app-empty {
+    color: var(--color-muted, #6b6b6b);
+    font-style: italic;
+    margin: 0;
+    padding: 0.5rem 0;
+  }
+</style>

@@ -1,0 +1,21 @@
+# Critical apparatus for De Coloribus (Aristotle / Corpus Aristotelicum)
+# Text base: Bekker 1831 (Aristotelis opera, vol. 2, Berlin: Reimer)
+# Source: Cod. E (Parisiensis 1853) collation reported in Bekker's apparatus.
+#
+# Entry format:
+#   ref: "791a10"                          # single Bekker line
+#   ref: { start: "791a19", end: "791a20" } # range (lemma crosses line-break)
+#   lemma: "Greek text as it appears"      # exact substring to highlight
+#   note: "apparatus note"
+
+sigla:
+  E: "Parisiensis 1853"
+
+entries:
+  - ref: "791a10"
+    lemma: "μεταβαλλόντων"
+    note: "μεταβάλλουσι Portius"
+
+  - ref: "791a11"
+    lemma: "εὐσύνοπτα"
+    note: "eiicit Schneider"

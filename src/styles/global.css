@@ -1,0 +1,71 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg, #fffdf6);
+  color: var(--color-text, #1a1a1a);
+  font-family: Georgia, "Times New Roman", serif;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Reader layout: text area fills viewport, apparatus docks at bottom ─ */
+.reader-layout {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+.reader-header {
+  padding: 1rem 2rem;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.reader-header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #6b6b6b;
+  font-style: italic;
+}
+
+/* ── Text column grid (future: can add a second column for translation) ─ */
+.text-columns {
+  display: grid;
+  grid-template-columns: [greek] 1fr;
+  overflow-y: auto;
+  /* Reserve space at bottom for the docked apparatus panel */
+  padding-bottom: 2rem;
+}
+
+/* Future English column:
+  .text-columns.with-translation {
+    grid-template-columns: [greek] 1fr [english] 1fr;
+    column-gap: 3rem;
+  }
+*/
+
+.text-column-gr {
+  padding: 2rem 3rem 4rem;
+  max-width: 50rem;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .text-column-gr {
+    padding: 1rem 1rem 3rem;
+  }
+}

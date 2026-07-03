@@ -1,0 +1,84 @@
+---
+import { processTei } from "../utils/processTei";
+import "../styles/global.css";
+import { loadApparatus } from "../utils/loadApparatus";
+import { bekkerScheme } from "../utils/referenceSchemes";
+import Tei from "../components/Tei/Tei.astro";
+import ApparatusPanel from "../components/ApparatusPanel/ApparatusPanel.astro";
+
+// Load and process the TEI text (build-text.ts must have run first)
+let teiXml: string;
+try {
+  const mod = await import("../content/de-coloribus.xml?raw");
+  teiXml = mod.default;
+} catch {
+  throw new Error(
+    "de-coloribus.xml not found. Run `tsx scripts/build-text.ts` first."
+  );
+}
+
+const teiData = processTei(teiXml, "gr", {
+  teiTitle: { gr: "ΠΕΡΙ ΧΡΩΜΑΤΩΝ", en: "On Colors" },
+  firstLineReference: "791a1",
+  referenceScheme: bekkerScheme,
+});
+
+// Load apparatus entries
+const apparatus = await loadApparatus("de-coloribus");
+---
+
+<!doctype html>
+<html lang="grc">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ΠΕΡΙ ΧΡΩΜΑΤΩΝ — De Coloribus</title>
+    <meta
+      name="description"
+      content="Online critical edition of Aristotle's De Coloribus (On Colors). Greek text with interactive critical apparatus."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div class="reader-layout">
+      <header class="reader-header">
+        <h2>Aristotle · De Coloribus · Bekker 791a–799b</h2>
+        <a href="https://roberthowton.com" class="back-link">← roberthowton.com</a>
+      </header>
+
+      <!-- Apparatus data: read client-side by TeiCustomElement + ApparatusPanelElement -->
+      <script
+        is:inline
+        type="application/json"
+        id="apparatus"
+        set:text={JSON.stringify({
+          sigla: apparatus.sigla,
+          entries: apparatus.entries,
+          anchorPositions: apparatus.anchorPositions,
+        })}
+      />
+
+      <div class="text-columns">
+        <div class="text-column-gr">
+          <Tei teiData={teiData} rootId="text-gr" />
+        </div>
+        <!-- Future: English translation column goes here -->
+      </div>
+
+      <!-- Docked apparatus panel — tracks visible lines via IntersectionObserver -->
+      <ApparatusPanel />
+    </div>
+  </body>
+</html>
+
+<style>
+  .back-link {
+    font-size: 0.85rem;
+    color: #6b6b6b;
+    text-decoration: none;
+    margin-left: auto;
+  }
+  .back-link:hover {
+    text-decoration: underline;
+  }
+</style>

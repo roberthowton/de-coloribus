@@ -1,0 +1,143 @@
+---
+import TeiBaseStyle from "./tei-base-style.astro";
+---
+
+<TeiBaseStyle />
+<style is:inline>
+  /* ── Greek typeface ────────────────────────────────────────────────── */
+  @font-face {
+    font-family: "Porson";
+    src: url("/fonts/GFSPorson.woff2") format("woff2"),
+         url("/fonts/GFSPorson.woff") format("woff");
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  :root {
+    --font-greek: Porson, "GFS Porson", "New Athena Unicode", "Gentium Plus",
+      "Gentium", serif;
+    --font-body: Georgia, "Times New Roman", serif;
+    --font-mono: ui-monospace, monospace;
+    --color-bg: #fffdf6;
+    --color-text: #1a1a1a;
+    --color-muted: #6b6b6b;
+    --color-accent: #8b0000;
+    --color-lemma: rgba(139, 0, 0, 0.12);
+    --color-lemma-border: rgba(139, 0, 0, 0.4);
+  }
+
+  /* ── Title label (TLG source: <label type="head">) ─────────────────── */
+  tei-label[type="head"] {
+    display: block;
+    text-align: center;
+    font-family: var(--font-greek);
+    font-size: 1.8rem;
+    font-weight: bold;
+    letter-spacing: 0.15em;
+    margin: 1rem 0 1.5rem;
+  }
+
+  /* ── Text grid ──────────────────────────────────────────────────────── */
+  tei-div {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .tei-grid {
+    display: grid;
+    grid-template-columns: [text] 1fr [lineRef] 3.5rem;
+    column-gap: 0.5rem;
+    align-items: baseline;
+  }
+
+  /* ── Line text ──────────────────────────────────────────────────────── */
+  .text-line {
+    display: block;
+    grid-column: text;
+    font-family: var(--font-greek);
+    font-size: 1.35rem;
+    line-height: 1.65;
+    text-align: justify;
+    text-align-last: justify;
+    min-height: 1.65em;
+  }
+
+  .text-line.last {
+    text-align-last: left;
+  }
+
+  tei-p {
+    margin: 0;
+  }
+
+  .tei-hidden {
+    display: none;
+  }
+
+  /* ── Margin line markers ────────────────────────────────────────────── */
+  .line-marker-block {
+    grid-column: lineRef;
+    text-align: right;
+    user-select: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  .line-marker-inline {
+    display: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-style: italic;
+    font-weight: 600;
+    color: var(--color-muted);
+  }
+
+  /* Inline mode on narrow screens */
+  .inline-mode .line-marker-inline {
+    display: inline !important;
+  }
+  .inline-mode .line-marker-block {
+    display: none !important;
+  }
+  .inline-mode tei-lb {
+    display: inline !important;
+  }
+  .inline-mode .text-line {
+    display: inline !important;
+    min-height: unset;
+    text-align-last: auto;
+  }
+
+  /* ── Apparatus lemma highlight ──────────────────────────────────────── */
+  .app-lemma {
+    background-color: var(--color-lemma);
+    border-bottom: 1px solid var(--color-lemma-border);
+    cursor: pointer;
+    border-radius: 1px;
+  }
+
+  .app-lemma:hover {
+    background-color: rgba(139, 0, 0, 0.22);
+  }
+
+  /* ── Bekker page reference ──────────────────────────────────────────── */
+  .edition-page-ref {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-style: italic;
+    font-weight: 700;
+    color: var(--color-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  /* ── Physical breaks (hide, logical structure is in <div n="...">) ──── */
+  tei-pb,
+  tei-cb {
+    display: none;
+  }
+</style>
