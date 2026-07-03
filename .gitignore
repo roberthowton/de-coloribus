@@ -6,6 +6,5 @@ node_modules/
 .vercel
 .astro/
 coverage/
-src/content/de-coloribus.xml
 # apparatus data lives in src/data/, not src/content/
 

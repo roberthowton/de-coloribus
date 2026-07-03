@@ -9,7 +9,7 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "tsx scripts/build-text.ts && astro check && astro build",
-    "vercel-build": "tsx scripts/build-text.ts && astro build",
+    "vercel-build": "astro build",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest",
