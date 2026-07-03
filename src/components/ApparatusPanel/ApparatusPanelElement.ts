@@ -103,12 +103,6 @@ export function createApparatusPanelElement(): typeof HTMLElement {
 
       this.observeLines();
       this.render([]);
-
-      // Set up collapse toggle
-      this.querySelector(".app-toggle")?.addEventListener("click", () => {
-        this.collapsed = !this.collapsed;
-        this.classList.toggle("collapsed", this.collapsed);
-      });
     }
 
     private observeLines() {
