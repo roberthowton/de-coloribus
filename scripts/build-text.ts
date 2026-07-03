@@ -40,20 +40,11 @@ function injectLineBegins(xmlStr: string): string {
     doc.querySelectorAll('div[type="Bekker-page"]')
   )) {
     const pageRef = div.getAttribute("n")!; // e.g. "791a"
-    const p = div.querySelector("p");
-    if (!p) continue;
+    const paragraphs = Array.from(div.querySelectorAll("p"));
+    if (!paragraphs.length) continue;
 
-    // Does this div have a <label type="head"> (i.e., is it 791a with the title)?
-    const headLabel = p.querySelector('label[type="head"]');
-
-    // Collect text nodes NOT inside <label type="head">
-    const textNodes: Text[] = [];
-    const walker = doc.createTreeWalker(p, 0x4 /* NodeFilter.SHOW_TEXT */);
-    let tn: Node | null;
-    while ((tn = walker.nextNode())) {
-      if ((tn as Text).parentElement?.closest('label[type="head"]')) continue;
-      textNodes.push(tn as Text);
-    }
+    // Does the first <p> have a <label type="head"> (i.e., 791a with the title)?
+    const headLabel = paragraphs[0].querySelector('label[type="head"]');
 
     let lineNum = 0;
     // For label divs (791a): line 1 starts after the first \n that follows
@@ -62,60 +53,72 @@ function injectLineBegins(xmlStr: string): string {
     // For non-label divs: we need to insert lb1 before the very first text.
     let needFirstLb = !headLabel;
 
-    for (const textNode of textNodes) {
-      const text = textNode.textContent || "";
-      const parent = textNode.parentNode!;
-      const nextSibling = textNode.nextSibling;
+    // Process ALL paragraphs in the div, carrying lineNum across them so
+    // multi-paragraph pages get continuous Bekker line numbers.
+    for (const p of paragraphs) {
+      // Collect text nodes NOT inside <label type="head">
+      const textNodes: Text[] = [];
+      const walker = doc.createTreeWalker(p, 0x4 /* NodeFilter.SHOW_TEXT */);
+      let tn: Node | null;
+      while ((tn = walker.nextNode())) {
+        if ((tn as Text).parentElement?.closest('label[type="head"]')) continue;
+        textNodes.push(tn as Text);
+      }
 
-      const parts = text.split("\n");
-      const replacement: Node[] = [];
+      for (const textNode of textNodes) {
+        const text = textNode.textContent || "";
+        const parent = textNode.parentNode!;
+        const nextSibling = textNode.nextSibling;
 
-      for (let i = 0; i < parts.length; i++) {
-        const segment = parts[i];
+        const parts = text.split("\n");
+        const replacement: Node[] = [];
 
-        if (i === 0) {
-          // Content before the first \n in this text node.
-          if (needFirstLb && segment.trim()) {
-            // Insert lb1 before the first actual text in a non-label div.
-            needFirstLb = false;
-            lineNum = 1;
-            const lb = doc.createElementNS(TEI_NS, "lb");
-            lb.setAttribute("n", `${pageRef}${lineNum}`);
-            replacement.push(lb);
-          }
-          if (segment) replacement.push(doc.createTextNode(segment));
-        } else {
-          // Content following a \n.
-          if (skipNextNewline) {
-            // This is the separator \n right after </label> on 791a.
-            // The text AFTER this \n is Bekker line 1.
-            skipNextNewline = false;
-            lineNum = 1;
-            if (segment.trim()) {
+        for (let i = 0; i < parts.length; i++) {
+          const segment = parts[i];
+
+          if (i === 0) {
+            // Content before the first \n in this text node.
+            if (needFirstLb && segment.trim()) {
+              // Insert lb1 before the first actual text in a non-label div.
+              needFirstLb = false;
+              lineNum = 1;
               const lb = doc.createElementNS(TEI_NS, "lb");
               lb.setAttribute("n", `${pageRef}${lineNum}`);
               replacement.push(lb);
             }
             if (segment) replacement.push(doc.createTextNode(segment));
           } else {
-            lineNum++;
-            const lb = doc.createElementNS(TEI_NS, "lb");
-            lb.setAttribute("n", `${pageRef}${lineNum}`);
-            replacement.push(lb);
-            if (segment) replacement.push(doc.createTextNode(segment));
+            // Content following a \n.
+            if (skipNextNewline) {
+              // This is the separator \n right after </label> on 791a.
+              // The text AFTER this \n is Bekker line 1.
+              skipNextNewline = false;
+              lineNum = 1;
+              if (segment.trim()) {
+                const lb = doc.createElementNS(TEI_NS, "lb");
+                lb.setAttribute("n", `${pageRef}${lineNum}`);
+                replacement.push(lb);
+              }
+              if (segment) replacement.push(doc.createTextNode(segment));
+            } else {
+              lineNum++;
+              const lb = doc.createElementNS(TEI_NS, "lb");
+              lb.setAttribute("n", `${pageRef}${lineNum}`);
+              replacement.push(lb);
+              if (segment) replacement.push(doc.createTextNode(segment));
+            }
           }
         }
+
+        for (const node of replacement) {
+          parent.insertBefore(node, nextSibling || null);
+        }
+        parent.removeChild(textNode);
       }
 
-      for (const node of replacement) {
-        parent.insertBefore(node, nextSibling || null);
-      }
-      parent.removeChild(textNode);
+      // Remove physical-print break markers from each paragraph.
+      p.querySelectorAll("pb, cb").forEach((el) => el.remove());
     }
-
-    // Remove physical-print break markers (<pb/> and <cb/>).
-    // These are redundant: column structure is already in <div n="..."> attrs.
-    p.querySelectorAll("pb, cb").forEach((el) => el.remove());
   }
 
   return new window.XMLSerializer().serializeToString(doc);
