@@ -1,16 +1,3 @@
-/**
- * ApparatusPanelElement — web component that shows the critical apparatus
- * entries for lines currently visible in the scroll viewport.
- *
- * Architecture:
- * - Reads apparatus entries from <script type="application/json" id="apparatus">.
- * - Builds a map: bekkerRef → ApparatusEntry[] (range entries indexed under
- *   every covered line).
- * - Attaches an IntersectionObserver to every .text-line element; maintains a
- *   Set of visible refs. On change (rAF-throttled), re-renders the panel.
- * - Range entries are "visible" if ANY line in [start..end] is visible.
- */
-
 import type { ApparatusEntry, ApparatusTarget } from "../../scripts/annotate";
 
 type ApparatusJson = {
@@ -30,7 +17,6 @@ function parseApparatusJson(): ApparatusJson | null {
   }
 }
 
-/** Extract the bekker line key(s) an entry covers. */
 function entryRefs(entry: ApparatusEntry): string[] {
   const refs: string[] = [];
   for (const target of entry.targets) {
@@ -44,13 +30,11 @@ function entryRefs(entry: ApparatusEntry): string[] {
   return refs;
 }
 
-/** Build a page label (e.g. "791a") from a ref like "791a10". */
 function pageFromRef(ref: string): string {
   const m = /^(\d+[ab])/.exec(ref);
   return m ? m[1] : ref;
 }
 
-/** Render an entry as HTML. Format: lineRef · lemma ] note */
 function renderEntry(entry: ApparatusEntry): string {
   const lemma = (entry.targets[0] as ApparatusTarget).lemma ?? "";
   const note = entry.note ?? "";
@@ -64,16 +48,17 @@ function renderEntry(entry: ApparatusEntry): string {
 export function createApparatusPanelElement(): typeof HTMLElement {
   return class ApparatusPanel extends HTMLElement {
     private data: ApparatusJson | null = null;
-    /** Map from bekkerRef → entries that cover that ref */
     private refIndex: Map<string, ApparatusEntry[]> = new Map();
     private visibleRefs: Set<string> = new Set();
     private observer: IntersectionObserver | null = null;
     private rafPending: boolean = false;
     private collapsed: boolean = false;
+    private pinnedEntries: Set<string> = new Set();
+    private hoveredEntry: string | null = null;
+    private highlightsEnabled: boolean = true;
 
     connectedCallback() {
       this.init();
-      // Re-init on Astro view transitions
       document.addEventListener("astro:after-swap", () => this.init());
     }
 
@@ -91,7 +76,6 @@ export function createApparatusPanelElement(): typeof HTMLElement {
         return;
       }
 
-      // Build ref → entry index (range entries go under BOTH start and end refs)
       this.refIndex = new Map();
       for (const entry of this.data.entries) {
         for (const ref of entryRefs(entry)) {
@@ -106,7 +90,6 @@ export function createApparatusPanelElement(): typeof HTMLElement {
     }
 
     private observeLines() {
-      // Observe every .text-line element in tei-container
       const container = document.querySelector("tei-container");
       if (!container) return;
 
@@ -114,8 +97,6 @@ export function createApparatusPanelElement(): typeof HTMLElement {
         (entries) => {
           for (const entry of entries) {
             const el = entry.target as HTMLElement;
-            // The id is "791a10-gr-text" → the lb id is "791a10-gr"
-            // We want the bekker ref: strip the "-gr-text" suffix
             const ref = el.id.replace(/-gr(-text)?$/, "");
             if (entry.isIntersecting) {
               this.visibleRefs.add(ref);
@@ -145,7 +126,6 @@ export function createApparatusPanelElement(): typeof HTMLElement {
     private updatePanel() {
       if (!this.data) return;
 
-      // Collect entries for visible refs, deduplicate by entry id
       const seen = new Set<string>();
       const visible: ApparatusEntry[] = [];
 
@@ -159,42 +139,45 @@ export function createApparatusPanelElement(): typeof HTMLElement {
         }
       }
 
-      // Sort by start ref (display order matches text order)
       visible.sort((a, b) => {
-        const ra = (a.targets[0] as ApparatusTarget).ref ??
-          (a.targets[0] as ApparatusTarget).refRange?.start ?? "";
-        const rb = (b.targets[0] as ApparatusTarget).ref ??
-          (b.targets[0] as ApparatusTarget).refRange?.start ?? "";
+        const ra =
+          (a.targets[0] as ApparatusTarget).ref ??
+          (a.targets[0] as ApparatusTarget).refRange?.start ??
+          "";
+        const rb =
+          (b.targets[0] as ApparatusTarget).ref ??
+          (b.targets[0] as ApparatusTarget).refRange?.start ??
+          "";
         return ra.localeCompare(rb);
       });
 
       this.render(visible);
     }
 
-    private highlightEntry(entryId: string, on: boolean) {
+    /** Recompute all .app-lemma highlights based on current state. */
+    private updateHighlights() {
       for (const span of Array.from(
         document.querySelectorAll<HTMLElement>(".app-lemma")
       )) {
         const ids = span.dataset.entryIds?.split(",") ?? [];
-        if (ids.includes(entryId)) span.classList.toggle("highlighted", on);
+        const on =
+          this.highlightsEnabled &&
+          ids.some(
+            (id) => this.pinnedEntries.has(id) || id === this.hoveredEntry
+          );
+        span.classList.toggle("highlighted", on);
       }
     }
 
     private render(entries: ApparatusEntry[]) {
       if (!this.data) return;
 
-      // Clear any active highlights before re-render wipes the hovered entry
-      for (const span of Array.from(
-        document.querySelectorAll<HTMLElement>(".app-lemma.highlighted")
-      )) {
-        span.classList.remove("highlighted");
-      }
+      // DOM is being replaced; clear transient hover state
+      this.hoveredEntry = null;
 
-      // Determine current page label from first visible ref
       const firstRef = Array.from(this.visibleRefs).sort()[0] ?? "";
       const pageLabel = firstRef ? pageFromRef(firstRef) : "—";
 
-      // Build sigla legend
       const siglaHtml = Object.entries(this.data.sigla)
         .map(([k, v]) => `<span class="siglum"><b>${k}</b> = ${v}</span>`)
         .join(" &ensp; ");
@@ -203,31 +186,75 @@ export function createApparatusPanelElement(): typeof HTMLElement {
         ? `<ul class="app-entries">${entries.map(renderEntry).join("")}</ul>`
         : `<p class="app-empty">No apparatus notes for visible lines.</p>`;
 
+      const hlActive = this.highlightsEnabled ? " active" : "";
+
       this.innerHTML = `
         <div class="app-header">
           <span class="app-page-label">App. crit. ${pageLabel}</span>
           ${siglaHtml ? `<span class="app-sigla">${siglaHtml}</span>` : ""}
-          <button class="app-toggle" aria-label="Toggle apparatus panel" title="Toggle">
-            <span class="app-toggle-icon">▾</span>
-          </button>
+          <div class="app-controls">
+            <button class="app-hl-toggle${hlActive}" aria-label="Toggle highlights" title="Toggle highlights">✦</button>
+            <button class="app-toggle" aria-label="Toggle apparatus panel" title="Toggle panel">
+              <span class="app-toggle-icon">▾</span>
+            </button>
+          </div>
         </div>
         <div class="app-body">${entriesHtml}</div>
       `;
 
-      // Toggle listener
+      // Restore pinned visual state on newly-rendered entries
+      for (const li of Array.from(
+        this.querySelectorAll<HTMLElement>(".app-entry")
+      )) {
+        if (li.dataset.entryId && this.pinnedEntries.has(li.dataset.entryId)) {
+          li.classList.add("pinned");
+        }
+      }
+
+      // Re-apply highlight state (pinned entries survive re-renders)
+      this.updateHighlights();
+
+      // Panel collapse toggle
       this.querySelector(".app-toggle")?.addEventListener("click", () => {
         this.collapsed = !this.collapsed;
         this.classList.toggle("collapsed", this.collapsed);
       });
 
-      // Hover listeners: highlight matching lemma spans in the text
+      // Global highlights toggle
+      this.querySelector(".app-hl-toggle")?.addEventListener("click", () => {
+        this.highlightsEnabled = !this.highlightsEnabled;
+        this.querySelector(".app-hl-toggle")?.classList.toggle(
+          "active",
+          this.highlightsEnabled
+        );
+        this.updateHighlights();
+      });
+
+      // Per-entry: hover + click
       for (const li of Array.from(
         this.querySelectorAll<HTMLElement>(".app-entry")
       )) {
         const id = li.dataset.entryId;
         if (!id) continue;
-        li.addEventListener("mouseenter", () => this.highlightEntry(id, true));
-        li.addEventListener("mouseleave", () => this.highlightEntry(id, false));
+
+        li.addEventListener("mouseenter", () => {
+          this.hoveredEntry = id;
+          this.updateHighlights();
+        });
+        li.addEventListener("mouseleave", () => {
+          this.hoveredEntry = null;
+          this.updateHighlights();
+        });
+        li.addEventListener("click", () => {
+          if (this.pinnedEntries.has(id)) {
+            this.pinnedEntries.delete(id);
+            li.classList.remove("pinned");
+          } else {
+            this.pinnedEntries.add(id);
+            li.classList.add("pinned");
+          }
+          this.updateHighlights();
+        });
       }
     }
   };
